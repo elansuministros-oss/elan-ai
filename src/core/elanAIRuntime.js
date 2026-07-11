@@ -89,7 +89,7 @@ export class ElanAIRuntime {
       });
     }
 
-    this.memoryEngine.appendMessage(
+    await this.memoryEngine.appendMessage(
       sessionId,
       'user',
       context.message
@@ -104,7 +104,7 @@ export class ElanAIRuntime {
       lastRequestId: context.requestId
     });
 
-    const memory = this.memoryEngine.getSession(sessionId);
+    const memory = await this.memoryEngine.getSession(sessionId);
     const state = this.stateEngine.get(stateKey);
     const knowledge = this.knowledgeEngine.search(context.message);
 
@@ -181,7 +181,7 @@ export class ElanAIRuntime {
         status: 'REJECTED',
         context,
         plan,
-        memory: this.memoryEngine.getSession(sessionId),
+        memory: await this.memoryEngine.getSession(sessionId),
         state: this.stateEngine.get(stateKey),
         knowledge,
         reasoning,
@@ -205,7 +205,7 @@ export class ElanAIRuntime {
       }
     );
 
-    this.memoryEngine.appendMessage(
+    await this.memoryEngine.appendMessage(
       sessionId,
       'assistant',
       formatted.message
@@ -225,7 +225,7 @@ export class ElanAIRuntime {
       status: 'COMPLETED',
       context,
       plan,
-      memory: this.memoryEngine.getSession(sessionId),
+      memory: await this.memoryEngine.getSession(sessionId),
       state: this.stateEngine.get(stateKey),
       knowledge,
       reasoning,

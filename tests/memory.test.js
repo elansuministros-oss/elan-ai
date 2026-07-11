@@ -5,57 +5,59 @@ import {
   MemoryEngine
 } from '../src/memory/index.js';
 
-test('Memory crea y recupera sesion mediante adapter', () => {
+test('Memory crea y recupera sesion mediante adapter', async () => {
   const memory = new MemoryEngine(
     new InMemoryMemoryAdapter()
   );
 
-  memory.appendMessage('S1', 'user', 'Hola');
-  memory.appendMessage('S1', 'assistant', 'Bienvenido');
+  await memory.appendMessage('S1', 'user', 'Hola');
+  await memory.appendMessage('S1', 'assistant', 'Bienvenido');
 
-  const session = memory.getSession('S1');
+  const session = await memory.getSession('S1');
 
   assert.equal(session.messages.length, 2);
   assert.match(session.summary, /Hola/);
   assert.match(session.summary, /Bienvenido/);
 });
 
-test('Memory mantiene sesiones separadas', () => {
+test('Memory mantiene sesiones separadas', async () => {
   const memory = new MemoryEngine(
     new InMemoryMemoryAdapter()
   );
 
-  memory.appendMessage('A', 'user', 'Mensaje A');
-  memory.appendMessage('B', 'user', 'Mensaje B');
+  await memory.appendMessage('A', 'user', 'Mensaje A');
+  await memory.appendMessage('B', 'user', 'Mensaje B');
 
-  assert.equal(memory.getSession('A').messages.length, 1);
-  assert.equal(memory.getSession('B').messages.length, 1);
-  assert.notEqual(
-    memory.getSession('A').sessionId,
-    memory.getSession('B').sessionId
-  );
+  const sessionA = await memory.getSession('A');
+  const sessionB = await memory.getSession('B');
+
+  assert.equal(sessionA.messages.length, 1);
+  assert.equal(sessionB.messages.length, 1);
+  assert.notEqual(sessionA.sessionId, sessionB.sessionId);
 });
 
-test('Memory elimina sesion', () => {
+test('Memory elimina sesion', async () => {
   const memory = new MemoryEngine(
     new InMemoryMemoryAdapter()
   );
 
-  memory.appendMessage('TEMP', 'user', 'Temporal');
+  await memory.appendMessage('TEMP', 'user', 'Temporal');
 
-  assert.equal(memory.deleteSession('TEMP'), true);
-  assert.equal(memory.getSession('TEMP'), null);
+  assert.equal(await memory.deleteSession('TEMP'), true);
+  assert.equal(await memory.getSession('TEMP'), null);
 });
 
-test('Memory lista sesiones', () => {
+test('Memory lista sesiones', async () => {
   const memory = new MemoryEngine(
     new InMemoryMemoryAdapter()
   );
 
-  memory.appendMessage('A', 'user', 'Uno');
-  memory.appendMessage('B', 'user', 'Dos');
+  await memory.appendMessage('A', 'user', 'Uno');
+  await memory.appendMessage('B', 'user', 'Dos');
 
-  assert.equal(memory.listSessions().length, 2);
+  const sessions = await memory.listSessions();
+
+  assert.equal(sessions.length, 2);
 });
 
 test('Memory rechaza adapter invalido', () => {

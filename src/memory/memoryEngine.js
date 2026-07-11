@@ -23,9 +23,9 @@ export class MemoryEngine {
     this.adapter = adapter;
   }
 
-  createSession(sessionId) {
+  async createSession(sessionId) {
     const normalizedSessionId = requireText(sessionId, 'sessionId');
-    const existing = this.adapter.get(normalizedSessionId);
+    const existing = await this.adapter.get(normalizedSessionId);
 
     if (existing) {
       return existing;
@@ -42,11 +42,11 @@ export class MemoryEngine {
     return this.adapter.save(session);
   }
 
-  appendMessage(sessionId, role, content) {
+  async appendMessage(sessionId, role, content) {
     const normalizedRole = requireText(role, 'role');
     const normalizedContent = requireText(content, 'content');
 
-    const session = this.createSession(sessionId);
+    const session = await this.createSession(sessionId);
 
     const next = {
       ...session,
@@ -69,15 +69,15 @@ export class MemoryEngine {
     return this.adapter.save(next);
   }
 
-  getSession(sessionId) {
+  async getSession(sessionId) {
     return this.adapter.get(requireText(sessionId, 'sessionId'));
   }
 
-  deleteSession(sessionId) {
+  async deleteSession(sessionId) {
     return this.adapter.delete(requireText(sessionId, 'sessionId'));
   }
 
-  listSessions() {
+  async listSessions() {
     return this.adapter.list();
   }
 }
