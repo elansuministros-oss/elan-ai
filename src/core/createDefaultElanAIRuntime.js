@@ -8,7 +8,10 @@ import {
   InMemoryIdentityAdapter
 } from '../identity/index.js';
 import { planner } from '../planner/index.js';
-import { MemoryEngine } from '../memory/index.js';
+import {
+  InMemoryMemoryAdapter,
+  MemoryEngine
+} from '../memory/index.js';
 import {
   InMemoryStateAdapter,
   StateEngine
@@ -43,7 +46,9 @@ export function createDefaultElanAIRuntime() {
     new InMemoryIdentityAdapter()
   );
 
-  const memoryEngine = new MemoryEngine();
+  const memoryEngine = new MemoryEngine(
+    new InMemoryMemoryAdapter()
+  );
 
   const stateEngine = new StateEngine(
     new InMemoryStateAdapter()

@@ -1,37 +1,83 @@
-export class MemoryEngine {
-  #sessions = new Map();
-
-  createSession(sessionId) {
-    if (!sessionId) throw new TypeError('sessionId requerido');
-    if (!this.#sessions.has(sessionId)) {
-      this.#sessions.set(sessionId, {
-        sessionId,
-        messages: [],
-        summary: '',
-        updatedAt: new Date().toISOString()
-      });
-    }
-    return this.#sessions.get(sessionId);
+function requireText(value, fieldName) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new TypeError(`${fieldName} requerido`);
   }
 
-  appendMessage(sessionId, role, content) {
-    const session = this.createSession(sessionId);
-    session.messages.push({
-      role,
-      content,
-      at: new Date().toISOString()
-    });
-    session.updatedAt = new Date().toISOString();
-    session.summary = session.messages
-      .slice(-5)
-      .map(m => `[${m.role}] ${m.content}`)
-      .join(' | ');
-    return session;
-  }
+  return value.trim();
+}
 
-  getSession(sessionId) {
-    return this.#sessions.get(sessionId) ?? null;
+function validateAdapter(adapter) {
+  if (
+    !adapter ||
+    typeof adapter.save !== 'function' ||
+    typeof adapter.get !== 'function' ||
+    typeof adapter.list !== 'function'
+  ) {
+    throw new TypeError('MemoryEngine requiere un adapter valido');
   }
 }
 
-export const memoryEngine = new MemoryEngine();
+export class MemoryEngine {
+  constructor(adapter) {
+    validateAdapter(adapter);
+    this.adapter = adapter;
+  }
+
+  createSession(sessionId) {
+    const normalizedSessionId = requireText(sessionId, 'sessionId');
+    const existing = this.adapter.get(normalizedSessionId);
+
+    if (existing) {
+      return existing;
+    }
+
+    const session = {
+      sessionId: normalizedSessionId,
+      messages: [],
+      summary: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    return this.adapter.save(session);
+  }
+
+  appendMessage(sessionId, role, content) {
+    const normalizedRole = requireText(role, 'role');
+    const normalizedContent = requireText(content, 'content');
+
+    const session = this.createSession(sessionId);
+
+    const next = {
+      ...session,
+      messages: [
+        ...session.messages,
+        {
+          role: normalizedRole,
+          content: normalizedContent,
+          at: new Date().toISOString()
+        }
+      ],
+      updatedAt: new Date().toISOString()
+    };
+
+    next.summary = next.messages
+      .slice(-5)
+      .map((message) => `[${message.role}] ${message.content}`)
+      .join(' | ');
+
+    return this.adapter.save(next);
+  }
+
+  getSession(sessionId) {
+    return this.adapter.get(requireText(sessionId, 'sessionId'));
+  }
+
+  deleteSession(sessionId) {
+    return this.adapter.delete(requireText(sessionId, 'sessionId'));
+  }
+
+  listSessions() {
+    return this.adapter.list();
+  }
+}

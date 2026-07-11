@@ -1,1 +1,2 @@
-export { MemoryEngine, memoryEngine } from './memoryEngine.js';
+export { MemoryEngine } from './memoryEngine.js';
+export { InMemoryMemoryAdapter } from './inMemoryMemoryAdapter.js';
