@@ -6,8 +6,9 @@ export class ElanAIRuntime {
     memoryEngine,
     knowledgeEngine,
     reasoningEngine,
-    businessEngine,
-    operatorRegistry
+    operatorRegistry,
+    toolEngine,
+    businessEngine
   }) {
     const dependencies = {
       channelEngine,
@@ -16,8 +17,9 @@ export class ElanAIRuntime {
       memoryEngine,
       knowledgeEngine,
       reasoningEngine,
-      businessEngine,
-      operatorRegistry
+      operatorRegistry,
+      toolEngine,
+      businessEngine
     };
 
     for (const [name, dependency] of Object.entries(dependencies)) {
@@ -32,13 +34,13 @@ export class ElanAIRuntime {
     this.memoryEngine = memoryEngine;
     this.knowledgeEngine = knowledgeEngine;
     this.reasoningEngine = reasoningEngine;
-    this.businessEngine = businessEngine;
     this.operatorRegistry = operatorRegistry;
+    this.toolEngine = toolEngine;
+    this.businessEngine = businessEngine;
   }
 
   async process(channelName, rawInput = {}) {
     const normalized = this.channelEngine.normalize(channelName, rawInput);
-
     const context = this.dispatcher.dispatch(normalized);
 
     const sessionId =
@@ -53,9 +55,7 @@ export class ElanAIRuntime {
     );
 
     const plan = this.planner.createPlan(context);
-
     const memory = this.memoryEngine.getSession(sessionId);
-
     const knowledge = this.knowledgeEngine.search(context.message);
 
     const reasoning = await this.reasoningEngine.reason({
@@ -65,23 +65,6 @@ export class ElanAIRuntime {
       knowledge
     });
 
-    const business = this.businessEngine.evaluate({
-      requestId: context.requestId,
-      operator: plan.selectedOperator,
-      context,
-      plan,
-      reasoning
-    });
-
-    if (!business.allowed) {
-      return Object.freeze({
-        requestId: context.requestId,
-        status: 'REJECTED',
-        business,
-        response: null
-      });
-    }
-
     const operatorResult = await this.operatorRegistry.execute(
       plan.selectedOperator,
       {
@@ -89,10 +72,49 @@ export class ElanAIRuntime {
         plan,
         memory,
         knowledge,
-        reasoning,
-        business
+        reasoning
       }
     );
+
+    const executableActions = (operatorResult.actions || [])
+      .filter((action) => typeof action.toolName === 'string');
+
+    const toolResults = [];
+
+    for (const action of executableActions) {
+      const toolResult = await this.toolEngine.run({
+        toolName: action.toolName,
+        requestId: context.requestId,
+        input: action.input || {}
+      });
+
+      toolResults.push(toolResult);
+    }
+
+    const business = this.businessEngine.evaluate({
+      requestId: context.requestId,
+      operator: plan.selectedOperator,
+      context,
+      plan,
+      reasoning,
+      operatorResult,
+      toolResults
+    });
+
+    if (!business.allowed) {
+      return Object.freeze({
+        requestId: context.requestId,
+        sessionId,
+        status: 'REJECTED',
+        context,
+        plan,
+        reasoning,
+        operator: operatorResult,
+        tools: Object.freeze(toolResults),
+        business,
+        response: null
+      });
+    }
 
     const formatted = this.channelEngine.formatResponse(
       channelName,
@@ -121,8 +143,9 @@ export class ElanAIRuntime {
       memory: this.memoryEngine.getSession(sessionId),
       knowledge,
       reasoning,
-      business,
       operator: operatorResult,
+      tools: Object.freeze(toolResults),
+      business,
       response: formatted
     });
   }

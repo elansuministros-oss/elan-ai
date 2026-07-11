@@ -14,12 +14,16 @@ import {
   ReasoningEngine
 } from '../reasoning/index.js';
 import {
+  createDefaultOperatorRegistry
+} from '../operators/index.js';
+import {
+  ToolEngine,
+  createDefaultToolRegistry
+} from '../tools/index.js';
+import {
   BusinessEngine,
   createDefaultBusinessRuleRegistry
 } from '../business/index.js';
-import {
-  createDefaultOperatorRegistry
-} from '../operators/index.js';
 import { ElanAIRuntime } from './elanAIRuntime.js';
 
 export function createDefaultElanAIRuntime() {
@@ -37,11 +41,15 @@ export function createDefaultElanAIRuntime() {
     new DeterministicReasoningProvider()
   );
 
+  const operatorRegistry = createDefaultOperatorRegistry();
+
+  const toolEngine = new ToolEngine(
+    createDefaultToolRegistry()
+  );
+
   const businessEngine = new BusinessEngine(
     createDefaultBusinessRuleRegistry()
   );
-
-  const operatorRegistry = createDefaultOperatorRegistry();
 
   return new ElanAIRuntime({
     channelEngine,
@@ -50,7 +58,8 @@ export function createDefaultElanAIRuntime() {
     memoryEngine,
     knowledgeEngine,
     reasoningEngine,
-    businessEngine,
-    operatorRegistry
+    operatorRegistry,
+    toolEngine,
+    businessEngine
   });
 }

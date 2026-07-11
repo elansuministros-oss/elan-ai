@@ -16,8 +16,9 @@ test('Runtime ejecuta flujo completo desde WhatsApp', async () => {
   assert.equal(result.context.channel, 'whatsapp');
   assert.equal(result.plan.intent, 'quote');
   assert.equal(result.plan.selectedOperator, 'sales');
-  assert.equal(result.business.allowed, true);
   assert.equal(result.operator.operator, 'sales');
+  assert.deepEqual(result.tools, []);
+  assert.equal(result.business.allowed, true);
   assert.equal(result.response.channel, 'whatsapp');
   assert.equal(result.response.recipient, '50588888888');
   assert.equal(result.memory.messages.length, 2);
@@ -41,21 +42,15 @@ test('Runtime conserva memoria por sesion', async () => {
   assert.match(second.memory.summary, /Necesito precio/);
 });
 
-test('Runtime rechaza dependencia faltante', () => {
-  assert.throws(
-    () => new (class {
-      constructor() {
-        const dependencies = {
-          channelEngine: null
-        };
+test('Runtime expone resultado de operador antes de Business Engine', async () => {
+  const runtime = createDefaultElanAIRuntime();
 
-        for (const [name, dependency] of Object.entries(dependencies)) {
-          if (!dependency) {
-            throw new TypeError(`ElanAIRuntime requiere ${name}`);
-          }
-        }
-      }
-    })(),
-    /channelEngine/
-  );
+  const result = await runtime.process('internal', {
+    externalUserId: 'system',
+    message: 'Hola'
+  });
+
+  assert.equal(result.operator.status, 'COMPLETED');
+  assert.equal(result.business.status, 'APPROVED');
+  assert.equal(Array.isArray(result.tools), true);
 });
