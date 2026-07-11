@@ -68,10 +68,10 @@ export class ElanAIRuntime {
     const sessionId = identity.identityId;
     const stateKey = `identity:${identity.identityId}`;
 
-    const currentState = this.stateEngine.get(stateKey);
+    const currentState = await this.stateEngine.get(stateKey);
 
     if (!currentState) {
-      this.stateEngine.set(stateKey, {
+      await this.stateEngine.set(stateKey, {
         phase: 'RECEIVED',
         identityId: identity.identityId,
         channel: context.channel,
@@ -81,7 +81,7 @@ export class ElanAIRuntime {
         lastRequestId: context.requestId
       });
     } else {
-      this.stateEngine.patch(stateKey, {
+      await this.stateEngine.patch(stateKey, {
         phase: 'RECEIVED',
         channel: context.channel,
         externalUserId: context.externalUserId,
@@ -97,7 +97,7 @@ export class ElanAIRuntime {
 
     const plan = this.planner.createPlan(context);
 
-    this.stateEngine.patch(stateKey, {
+    await this.stateEngine.patch(stateKey, {
       phase: 'PLANNED',
       activeIntent: plan.intent,
       activeOperator: plan.selectedOperator,
@@ -105,7 +105,7 @@ export class ElanAIRuntime {
     });
 
     const memory = await this.memoryEngine.getSession(sessionId);
-    const state = this.stateEngine.get(stateKey);
+    const state = await this.stateEngine.get(stateKey);
     const knowledge = this.knowledgeEngine.search(context.message);
 
     const reasoning = await this.reasoningEngine.reason({
@@ -117,7 +117,7 @@ export class ElanAIRuntime {
       knowledge
     });
 
-    this.stateEngine.patch(stateKey, {
+    await this.stateEngine.patch(stateKey, {
       phase: 'REASONED'
     });
 
@@ -128,13 +128,13 @@ export class ElanAIRuntime {
         plan,
         identity,
         memory,
-        state: this.stateEngine.get(stateKey),
+        state: await this.stateEngine.get(stateKey),
         knowledge,
         reasoning
       }
     );
 
-    this.stateEngine.patch(stateKey, {
+    await this.stateEngine.patch(stateKey, {
       phase: 'OPERATED'
     });
 
@@ -160,14 +160,14 @@ export class ElanAIRuntime {
       identity,
       plan,
       memory,
-      state: this.stateEngine.get(stateKey),
+      state: await this.stateEngine.get(stateKey),
       reasoning,
       operatorResult,
       toolResults
     });
 
     if (!business.allowed) {
-      this.stateEngine.patch(stateKey, {
+      await this.stateEngine.patch(stateKey, {
         phase: 'REJECTED'
       });
 
@@ -182,7 +182,7 @@ export class ElanAIRuntime {
         context,
         plan,
         memory: await this.memoryEngine.getSession(sessionId),
-        state: this.stateEngine.get(stateKey),
+        state: await this.stateEngine.get(stateKey),
         knowledge,
         reasoning,
         operator: operatorResult,
@@ -211,7 +211,7 @@ export class ElanAIRuntime {
       formatted.message
     );
 
-    this.stateEngine.patch(stateKey, {
+    await this.stateEngine.patch(stateKey, {
       phase: 'COMPLETED'
     });
 
@@ -226,7 +226,7 @@ export class ElanAIRuntime {
       context,
       plan,
       memory: await this.memoryEngine.getSession(sessionId),
-      state: this.stateEngine.get(stateKey),
+      state: await this.stateEngine.get(stateKey),
       knowledge,
       reasoning,
       operator: operatorResult,

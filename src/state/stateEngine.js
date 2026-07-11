@@ -6,23 +6,27 @@ function requireKey(value) {
   return value.trim();
 }
 
+function validateAdapter(adapter) {
+  if (
+    !adapter ||
+    typeof adapter.save !== 'function' ||
+    typeof adapter.get !== 'function' ||
+    typeof adapter.delete !== 'function' ||
+    typeof adapter.list !== 'function'
+  ) {
+    throw new TypeError('StateEngine requiere un adapter valido');
+  }
+}
+
 export class StateEngine {
   constructor(adapter) {
-    if (
-      !adapter ||
-      typeof adapter.save !== 'function' ||
-      typeof adapter.get !== 'function'
-    ) {
-      throw new TypeError('StateEngine requiere un adapter valido');
-    }
-
+    validateAdapter(adapter);
     this.adapter = adapter;
   }
 
-  set(key, data = {}) {
+  async set(key, data = {}) {
     const normalizedKey = requireKey(key);
-
-    const current = this.adapter.get(normalizedKey);
+    const current = await this.adapter.get(normalizedKey);
 
     const next = Object.freeze({
       key: normalizedKey,
@@ -34,13 +38,13 @@ export class StateEngine {
     return this.adapter.save(normalizedKey, next);
   }
 
-  get(key) {
+  async get(key) {
     return this.adapter.get(requireKey(key));
   }
 
-  patch(key, partial = {}) {
+  async patch(key, partial = {}) {
     const normalizedKey = requireKey(key);
-    const current = this.get(normalizedKey);
+    const current = await this.get(normalizedKey);
 
     if (!current) {
       throw new Error(`State no encontrado: ${normalizedKey}`);
@@ -52,11 +56,11 @@ export class StateEngine {
     });
   }
 
-  remove(key) {
+  async remove(key) {
     return this.adapter.delete(requireKey(key));
   }
 
-  list() {
+  async list() {
     return this.adapter.list();
   }
 }
