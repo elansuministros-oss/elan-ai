@@ -5,11 +5,11 @@ import {
   KnowledgeEngine
 } from '../src/knowledge/index.js';
 
-test('Knowledge registra y recupera conocimiento', () => {
+test('Knowledge registra y recupera conocimiento', async () => {
   const adapter = new InMemoryKnowledgeAdapter();
   const knowledge = new KnowledgeEngine(adapter);
 
-  knowledge.register({
+  await knowledge.register({
     id: 'emc-pvc-3mm',
     title: 'PVC 3 mm',
     content: 'Material base para rotulacion interior',
@@ -17,18 +17,18 @@ test('Knowledge registra y recupera conocimiento', () => {
     type: 'material'
   });
 
-  const record = knowledge.getById('emc-pvc-3mm');
+  const record = await knowledge.getById('emc-pvc-3mm');
 
   assert.equal(record.title, 'PVC 3 mm');
   assert.equal(record.source, 'EMC');
   assert.equal(record.type, 'material');
 });
 
-test('Knowledge busca por contenido y fuente', () => {
+test('Knowledge busca por contenido y fuente', async () => {
   const adapter = new InMemoryKnowledgeAdapter();
   const knowledge = new KnowledgeEngine(adapter);
 
-  knowledge.register({
+  await knowledge.register({
     id: 'emc-acrilico',
     title: 'Acrilico transparente',
     content: 'Plancha para rotulos premium',
@@ -36,7 +36,7 @@ test('Knowledge busca por contenido y fuente', () => {
     type: 'material'
   });
 
-  knowledge.register({
+  await knowledge.register({
     id: 'manual-ventas',
     title: 'Manual comercial',
     content: 'Proceso de seguimiento de clientes',
@@ -44,18 +44,18 @@ test('Knowledge busca por contenido y fuente', () => {
     type: 'policy'
   });
 
-  const results = knowledge.search('EMC acrilico');
+  const results = await knowledge.search('EMC acrilico');
 
   assert.equal(results.length, 1);
   assert.equal(results[0].id, 'emc-acrilico');
   assert.equal(results[0].score, 2);
 });
 
-test('Knowledge permanece separado de conversaciones', () => {
+test('Knowledge permanece separado de conversaciones', async () => {
   const adapter = new InMemoryKnowledgeAdapter();
   const knowledge = new KnowledgeEngine(adapter);
 
-  knowledge.register({
+  await knowledge.register({
     id: 'politica-001',
     title: 'Politica de anticipo',
     content: 'El anticipo comercial es 60 por ciento',
@@ -63,7 +63,7 @@ test('Knowledge permanece separado de conversaciones', () => {
     type: 'policy'
   });
 
-  const result = knowledge.getById('politica-001');
+  const result = await knowledge.getById('politica-001');
 
   assert.equal(Object.hasOwn(result, 'messages'), false);
   assert.equal(Object.hasOwn(result, 'sessionId'), false);

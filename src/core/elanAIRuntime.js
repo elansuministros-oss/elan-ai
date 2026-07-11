@@ -106,7 +106,7 @@ export class ElanAIRuntime {
 
     const memory = await this.memoryEngine.getSession(sessionId);
     const state = await this.stateEngine.get(stateKey);
-    const knowledge = this.knowledgeEngine.search(context.message);
+    const knowledge = await this.knowledgeEngine.search(context.message);
 
     const reasoning = await this.reasoningEngine.reason({
       context,
