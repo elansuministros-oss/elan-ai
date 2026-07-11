@@ -49,7 +49,7 @@ export class ElanAIRuntime {
     const normalized = this.channelEngine.normalize(channelName, rawInput);
     const context = this.dispatcher.dispatch(normalized);
 
-    const identityResult = this.identityEngine.resolve({
+    const identityResult = await this.identityEngine.resolve({
       channel: context.channel,
       externalUserId: context.externalUserId || context.requestId,
       phone: normalized.metadata?.phone ?? rawInput.phone ?? null,

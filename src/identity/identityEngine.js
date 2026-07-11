@@ -21,7 +21,8 @@ export class IdentityEngine {
     if (
       !adapter ||
       typeof adapter.save !== 'function' ||
-      typeof adapter.findByExternal !== 'function'
+      typeof adapter.findByExternal !== 'function' ||
+      typeof adapter.list !== 'function'
     ) {
       throw new TypeError('IdentityEngine requiere un adapter valido');
     }
@@ -29,7 +30,7 @@ export class IdentityEngine {
     this.adapter = adapter;
   }
 
-  resolve({
+  async resolve({
     channel,
     externalUserId,
     phone = null,
@@ -43,7 +44,7 @@ export class IdentityEngine {
       'externalUserId'
     );
 
-    const existing = this.adapter.findByExternal(
+    const existing = await this.adapter.findByExternal(
       normalizedChannel,
       normalizedExternalUserId
     );
@@ -51,6 +52,7 @@ export class IdentityEngine {
     if (existing) {
       return Object.freeze({
         created: false,
+        merged: false,
         identity: Object.freeze(existing)
       });
     }
@@ -58,23 +60,29 @@ export class IdentityEngine {
     const normalizedPhone = normalizePhone(phone);
     const normalizedEmail = normalizeEmail(email);
 
-    const possibleMatch = this.adapter
-      .list()
-      .find((identity) => {
-        const samePhone =
-          normalizedPhone &&
-          identity.phone &&
-          identity.phone === normalizedPhone;
+    const identities = await this.adapter.list();
 
-        const sameEmail =
-          normalizedEmail &&
-          identity.email &&
-          identity.email === normalizedEmail;
+    const possibleMatch = identities.find((identity) => {
+      const samePhone =
+        normalizedPhone &&
+        identity.phone &&
+        identity.phone === normalizedPhone;
 
-        return samePhone || sameEmail;
-      });
+      const sameEmail =
+        normalizedEmail &&
+        identity.email &&
+        identity.email === normalizedEmail;
+
+      return samePhone || sameEmail;
+    });
 
     if (possibleMatch) {
+      const linkExists = possibleMatch.links.some(
+        (link) =>
+          link.channel === normalizedChannel &&
+          link.externalUserId === normalizedExternalUserId
+      );
+
       const updated = {
         ...possibleMatch,
         displayName:
@@ -82,13 +90,15 @@ export class IdentityEngine {
           (displayName ? String(displayName).trim() : null),
         phone: possibleMatch.phone || normalizedPhone || null,
         email: possibleMatch.email || normalizedEmail || null,
-        links: [
-          ...possibleMatch.links,
-          {
-            channel: normalizedChannel,
-            externalUserId: normalizedExternalUserId
-          }
-        ],
+        links: linkExists
+          ? [...possibleMatch.links]
+          : [
+              ...possibleMatch.links,
+              {
+                channel: normalizedChannel,
+                externalUserId: normalizedExternalUserId
+              }
+            ],
         metadata: {
           ...possibleMatch.metadata,
           ...metadata
@@ -99,7 +109,7 @@ export class IdentityEngine {
       return Object.freeze({
         created: false,
         merged: true,
-        identity: Object.freeze(this.adapter.save(updated))
+        identity: Object.freeze(await this.adapter.save(updated))
       });
     }
 
@@ -122,11 +132,11 @@ export class IdentityEngine {
     return Object.freeze({
       created: true,
       merged: false,
-      identity: Object.freeze(this.adapter.save(identity))
+      identity: Object.freeze(await this.adapter.save(identity))
     });
   }
 
-  getById(identityId) {
+  async getById(identityId) {
     return this.adapter.getById(requireText(identityId, 'identityId'));
   }
 }

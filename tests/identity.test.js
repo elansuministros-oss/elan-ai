@@ -5,12 +5,12 @@ import {
   InMemoryIdentityAdapter
 } from '../src/identity/index.js';
 
-test('IdentityEngine crea identidad nueva', () => {
+test('IdentityEngine crea identidad nueva', async () => {
   const engine = new IdentityEngine(
     new InMemoryIdentityAdapter()
   );
 
-  const result = engine.resolve({
+  const result = await engine.resolve({
     channel: 'whatsapp',
     externalUserId: '50588888888',
     phone: '+505 8888-8888',
@@ -22,17 +22,17 @@ test('IdentityEngine crea identidad nueva', () => {
   assert.equal(result.identity.links.length, 1);
 });
 
-test('IdentityEngine recupera la misma identidad por canal', () => {
+test('IdentityEngine recupera la misma identidad por canal', async () => {
   const engine = new IdentityEngine(
     new InMemoryIdentityAdapter()
   );
 
-  const first = engine.resolve({
+  const first = await engine.resolve({
     channel: 'whatsapp',
     externalUserId: '50577777777'
   });
 
-  const second = engine.resolve({
+  const second = await engine.resolve({
     channel: 'whatsapp',
     externalUserId: '50577777777'
   });
@@ -44,18 +44,18 @@ test('IdentityEngine recupera la misma identidad por canal', () => {
   );
 });
 
-test('IdentityEngine fusiona plataformas por telefono', () => {
+test('IdentityEngine fusiona plataformas por telefono', async () => {
   const engine = new IdentityEngine(
     new InMemoryIdentityAdapter()
   );
 
-  const whatsapp = engine.resolve({
+  const whatsapp = await engine.resolve({
     channel: 'whatsapp',
     externalUserId: 'wa-001',
     phone: '+505 8111-2233'
   });
 
-  const web = engine.resolve({
+  const web = await engine.resolve({
     channel: 'web',
     externalUserId: 'web-user-99',
     phone: '50581112233'
@@ -70,18 +70,18 @@ test('IdentityEngine fusiona plataformas por telefono', () => {
   assert.equal(web.identity.links.length, 2);
 });
 
-test('IdentityEngine fusiona plataformas por email', () => {
+test('IdentityEngine fusiona plataformas por email', async () => {
   const engine = new IdentityEngine(
     new InMemoryIdentityAdapter()
   );
 
-  const first = engine.resolve({
+  const first = await engine.resolve({
     channel: 'web',
     externalUserId: 'web-001',
     email: 'CLIENTE@EJEMPLO.COM'
   });
 
-  const second = engine.resolve({
+  const second = await engine.resolve({
     channel: 'internal',
     externalUserId: 'crm-001',
     email: 'cliente@ejemplo.com'
@@ -94,17 +94,17 @@ test('IdentityEngine fusiona plataformas por email', () => {
   assert.equal(second.identity.links.length, 2);
 });
 
-test('IdentityEngine mantiene identidades separadas sin coincidencia', () => {
+test('IdentityEngine mantiene identidades separadas sin coincidencia', async () => {
   const engine = new IdentityEngine(
     new InMemoryIdentityAdapter()
   );
 
-  const first = engine.resolve({
+  const first = await engine.resolve({
     channel: 'whatsapp',
     externalUserId: 'wa-a'
   });
 
-  const second = engine.resolve({
+  const second = await engine.resolve({
     channel: 'whatsapp',
     externalUserId: 'wa-b'
   });
