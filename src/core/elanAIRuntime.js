@@ -4,6 +4,7 @@ export class ElanAIRuntime {
     dispatcher,
     planner,
     memoryEngine,
+    stateEngine,
     knowledgeEngine,
     reasoningEngine,
     operatorRegistry,
@@ -15,6 +16,7 @@ export class ElanAIRuntime {
       dispatcher,
       planner,
       memoryEngine,
+      stateEngine,
       knowledgeEngine,
       reasoningEngine,
       operatorRegistry,
@@ -32,6 +34,7 @@ export class ElanAIRuntime {
     this.dispatcher = dispatcher;
     this.planner = planner;
     this.memoryEngine = memoryEngine;
+    this.stateEngine = stateEngine;
     this.knowledgeEngine = knowledgeEngine;
     this.reasoningEngine = reasoningEngine;
     this.operatorRegistry = operatorRegistry;
@@ -48,6 +51,26 @@ export class ElanAIRuntime {
       context.externalUserId ||
       context.requestId;
 
+    const stateKey = `${channelName}:${sessionId}`;
+
+    const currentState = this.stateEngine.get(stateKey);
+
+    if (!currentState) {
+      this.stateEngine.set(stateKey, {
+        phase: 'RECEIVED',
+        channel: channelName,
+        externalUserId: context.externalUserId,
+        activeIntent: null,
+        activeOperator: null,
+        lastRequestId: context.requestId
+      });
+    } else {
+      this.stateEngine.patch(stateKey, {
+        phase: 'RECEIVED',
+        lastRequestId: context.requestId
+      });
+    }
+
     this.memoryEngine.appendMessage(
       sessionId,
       'user',
@@ -55,14 +78,28 @@ export class ElanAIRuntime {
     );
 
     const plan = this.planner.createPlan(context);
+
+    this.stateEngine.patch(stateKey, {
+      phase: 'PLANNED',
+      activeIntent: plan.intent,
+      activeOperator: plan.selectedOperator,
+      lastRequestId: context.requestId
+    });
+
     const memory = this.memoryEngine.getSession(sessionId);
+    const state = this.stateEngine.get(stateKey);
     const knowledge = this.knowledgeEngine.search(context.message);
 
     const reasoning = await this.reasoningEngine.reason({
       context,
       plan,
       memory,
+      state,
       knowledge
+    });
+
+    this.stateEngine.patch(stateKey, {
+      phase: 'REASONED'
     });
 
     const operatorResult = await this.operatorRegistry.execute(
@@ -71,10 +108,15 @@ export class ElanAIRuntime {
         context,
         plan,
         memory,
+        state: this.stateEngine.get(stateKey),
         knowledge,
         reasoning
       }
     );
+
+    this.stateEngine.patch(stateKey, {
+      phase: 'OPERATED'
+    });
 
     const executableActions = (operatorResult.actions || [])
       .filter((action) => typeof action.toolName === 'string');
@@ -96,18 +138,28 @@ export class ElanAIRuntime {
       operator: plan.selectedOperator,
       context,
       plan,
+      memory,
+      state: this.stateEngine.get(stateKey),
       reasoning,
       operatorResult,
       toolResults
     });
 
     if (!business.allowed) {
+      this.stateEngine.patch(stateKey, {
+        phase: 'REJECTED'
+      });
+
       return Object.freeze({
         requestId: context.requestId,
         sessionId,
+        stateKey,
         status: 'REJECTED',
         context,
         plan,
+        memory: this.memoryEngine.getSession(sessionId),
+        state: this.stateEngine.get(stateKey),
+        knowledge,
         reasoning,
         operator: operatorResult,
         tools: Object.freeze(toolResults),
@@ -134,13 +186,19 @@ export class ElanAIRuntime {
       formatted.message
     );
 
+    this.stateEngine.patch(stateKey, {
+      phase: 'COMPLETED'
+    });
+
     return Object.freeze({
       requestId: context.requestId,
       sessionId,
+      stateKey,
       status: 'COMPLETED',
       context,
       plan,
       memory: this.memoryEngine.getSession(sessionId),
+      state: this.stateEngine.get(stateKey),
       knowledge,
       reasoning,
       operator: operatorResult,

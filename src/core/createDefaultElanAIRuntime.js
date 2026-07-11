@@ -6,6 +6,10 @@ import { dispatcher } from '../dispatcher/index.js';
 import { planner } from '../planner/index.js';
 import { MemoryEngine } from '../memory/index.js';
 import {
+  InMemoryStateAdapter,
+  StateEngine
+} from '../state/index.js';
+import {
   InMemoryKnowledgeAdapter,
   KnowledgeEngine
 } from '../knowledge/index.js';
@@ -33,6 +37,10 @@ export function createDefaultElanAIRuntime() {
 
   const memoryEngine = new MemoryEngine();
 
+  const stateEngine = new StateEngine(
+    new InMemoryStateAdapter()
+  );
+
   const knowledgeEngine = new KnowledgeEngine(
     new InMemoryKnowledgeAdapter()
   );
@@ -56,6 +64,7 @@ export function createDefaultElanAIRuntime() {
     dispatcher,
     planner,
     memoryEngine,
+    stateEngine,
     knowledgeEngine,
     reasoningEngine,
     operatorRegistry,
