@@ -1,17 +1,21 @@
-import { dispatcher } from './dispatcher/index.js';
+import { createDefaultElanAIRuntime } from './core/index.js';
 
-const validationContext = dispatcher.dispatch({
-  channel: 'internal',
+const runtime = createDefaultElanAIRuntime();
+
+const result = await runtime.process('internal', {
   externalUserId: 'system',
   message: 'health-check',
-  metadata: { movement: 'AI-002' }
+  metadata: {
+    movement: 'AI-011'
+  }
 });
 
 console.clear();
 console.log('====================================');
 console.log('ELAN AI');
 console.log('Estado       : ONLINE');
-console.log('Movimiento   : AI-002');
-console.log('Dispatcher   : READY');
-console.log(`Request ID   : ${validationContext.requestId}`);
+console.log('Movimiento   : AI-011');
+console.log('Runtime      : READY');
+console.log('Request ID   : ' + result.requestId);
+console.log('Status       : ' + result.status);
 console.log('====================================');
