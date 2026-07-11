@@ -3,6 +3,10 @@ import {
   createDefaultChannelRegistry
 } from '../channels/index.js';
 import { dispatcher } from '../dispatcher/index.js';
+import {
+  IdentityEngine,
+  InMemoryIdentityAdapter
+} from '../identity/index.js';
 import { planner } from '../planner/index.js';
 import { MemoryEngine } from '../memory/index.js';
 import {
@@ -35,6 +39,10 @@ export function createDefaultElanAIRuntime() {
     createDefaultChannelRegistry()
   );
 
+  const identityEngine = new IdentityEngine(
+    new InMemoryIdentityAdapter()
+  );
+
   const memoryEngine = new MemoryEngine();
 
   const stateEngine = new StateEngine(
@@ -62,6 +70,7 @@ export function createDefaultElanAIRuntime() {
   return new ElanAIRuntime({
     channelEngine,
     dispatcher,
+    identityEngine,
     planner,
     memoryEngine,
     stateEngine,

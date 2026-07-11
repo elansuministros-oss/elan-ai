@@ -5,6 +5,7 @@ import {
   GeneralOperator,
   OperatorRegistry,
   SalesOperator,
+  TaskOperator,
   createDefaultOperatorRegistry
 } from '../src/operators/index.js';
 
@@ -49,12 +50,32 @@ test('SalesOperator devuelve accion comercial pendiente', async () => {
   assert.equal(result.actions[0].status, 'PENDING');
 });
 
-test('Registry por defecto contiene general y sales', () => {
+test('TaskOperator ejecuta operadores funcionales base', async () => {
+  const operator = new TaskOperator('crm');
+
+  const result = await operator.execute({
+    context: {
+      requestId: 'req-003',
+      message: 'Seguimiento'
+    },
+    reasoning: {
+      requestId: 'req-003',
+      text: 'Gestionando seguimiento'
+    }
+  });
+
+  assert.equal(result.operator, 'crm');
+  assert.equal(result.response, 'Gestionando seguimiento');
+  assert.equal(result.status, 'COMPLETED');
+});
+
+test('Registry por defecto cubre todos los operadores del Planner', () => {
   const registry = createDefaultOperatorRegistry();
 
-  assert.deepEqual(registry.list(), ['general', 'sales']);
-  assert.equal(registry.has('general'), true);
-  assert.equal(registry.has('sales'), true);
+  assert.deepEqual(
+    registry.list(),
+    ['general', 'sales', 'crm', 'support', 'production']
+  );
 });
 
 test('OperatorRegistry rechaza duplicados', () => {

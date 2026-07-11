@@ -2,6 +2,7 @@ export class ElanAIRuntime {
   constructor({
     channelEngine,
     dispatcher,
+    identityEngine,
     planner,
     memoryEngine,
     stateEngine,
@@ -14,6 +15,7 @@ export class ElanAIRuntime {
     const dependencies = {
       channelEngine,
       dispatcher,
+      identityEngine,
       planner,
       memoryEngine,
       stateEngine,
@@ -32,6 +34,7 @@ export class ElanAIRuntime {
 
     this.channelEngine = channelEngine;
     this.dispatcher = dispatcher;
+    this.identityEngine = identityEngine;
     this.planner = planner;
     this.memoryEngine = memoryEngine;
     this.stateEngine = stateEngine;
@@ -46,19 +49,32 @@ export class ElanAIRuntime {
     const normalized = this.channelEngine.normalize(channelName, rawInput);
     const context = this.dispatcher.dispatch(normalized);
 
-    const sessionId =
-      normalized.externalUserId ||
-      context.externalUserId ||
-      context.requestId;
+    const identityResult = this.identityEngine.resolve({
+      channel: context.channel,
+      externalUserId: context.externalUserId || context.requestId,
+      phone: normalized.metadata?.phone ?? rawInput.phone ?? null,
+      email: normalized.metadata?.email ?? rawInput.email ?? null,
+      displayName:
+        normalized.metadata?.displayName ??
+        rawInput.displayName ??
+        rawInput.name ??
+        null,
+      metadata: {
+        sourceChannel: context.channel
+      }
+    });
 
-    const stateKey = `${channelName}:${sessionId}`;
+    const identity = identityResult.identity;
+    const sessionId = identity.identityId;
+    const stateKey = `identity:${identity.identityId}`;
 
     const currentState = this.stateEngine.get(stateKey);
 
     if (!currentState) {
       this.stateEngine.set(stateKey, {
         phase: 'RECEIVED',
-        channel: channelName,
+        identityId: identity.identityId,
+        channel: context.channel,
         externalUserId: context.externalUserId,
         activeIntent: null,
         activeOperator: null,
@@ -67,6 +83,8 @@ export class ElanAIRuntime {
     } else {
       this.stateEngine.patch(stateKey, {
         phase: 'RECEIVED',
+        channel: context.channel,
+        externalUserId: context.externalUserId,
         lastRequestId: context.requestId
       });
     }
@@ -95,6 +113,7 @@ export class ElanAIRuntime {
       plan,
       memory,
       state,
+      identity,
       knowledge
     });
 
@@ -107,6 +126,7 @@ export class ElanAIRuntime {
       {
         context,
         plan,
+        identity,
         memory,
         state: this.stateEngine.get(stateKey),
         knowledge,
@@ -137,6 +157,7 @@ export class ElanAIRuntime {
       requestId: context.requestId,
       operator: plan.selectedOperator,
       context,
+      identity,
       plan,
       memory,
       state: this.stateEngine.get(stateKey),
@@ -152,6 +173,9 @@ export class ElanAIRuntime {
 
       return Object.freeze({
         requestId: context.requestId,
+        identity,
+        identityCreated: identityResult.created,
+        identityMerged: identityResult.merged ?? false,
         sessionId,
         stateKey,
         status: 'REJECTED',
@@ -175,6 +199,7 @@ export class ElanAIRuntime {
         response: operatorResult.response,
         metadata: {
           requestId: context.requestId,
+          identityId: identity.identityId,
           operator: plan.selectedOperator
         }
       }
@@ -192,6 +217,9 @@ export class ElanAIRuntime {
 
     return Object.freeze({
       requestId: context.requestId,
+      identity,
+      identityCreated: identityResult.created,
+      identityMerged: identityResult.merged ?? false,
       sessionId,
       stateKey,
       status: 'COMPLETED',

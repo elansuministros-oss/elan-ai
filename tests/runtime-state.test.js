@@ -4,7 +4,7 @@ import {
   createDefaultElanAIRuntime
 } from '../src/core/index.js';
 
-test('Runtime integra State por canal y sesion', async () => {
+test('Runtime integra State por identidad canonica', async () => {
   const runtime = createDefaultElanAIRuntime();
 
   const result = await runtime.process('whatsapp', {
@@ -13,7 +13,7 @@ test('Runtime integra State por canal y sesion', async () => {
   });
 
   assert.equal(result.status, 'COMPLETED');
-  assert.equal(result.stateKey, 'whatsapp:50588888888');
+  assert.equal(result.stateKey, `identity:${result.identity.identityId}`);
   assert.equal(result.state.data.phase, 'COMPLETED');
   assert.equal(result.state.data.activeIntent, 'quote');
   assert.equal(result.state.data.activeOperator, 'sales');
@@ -40,7 +40,7 @@ test('Runtime conserva y versiona State entre mensajes', async () => {
   assert.ok(second.state.version > first.state.version);
 });
 
-test('Runtime separa State por plataforma', async () => {
+test('Runtime separa State cuando no existe coincidencia de identidad', async () => {
   const runtime = createDefaultElanAIRuntime();
 
   const whatsapp = await runtime.process('whatsapp', {
@@ -53,7 +53,8 @@ test('Runtime separa State por plataforma', async () => {
     message: 'Hola'
   });
 
-  assert.equal(whatsapp.stateKey, 'whatsapp:shared-user');
-  assert.equal(internal.stateKey, 'internal:shared-user');
+  assert.match(whatsapp.stateKey, /^identity:/);
+  assert.match(internal.stateKey, /^identity:/);
+  assert.notEqual(whatsapp.identity.identityId, internal.identity.identityId);
   assert.notEqual(whatsapp.stateKey, internal.stateKey);
 });

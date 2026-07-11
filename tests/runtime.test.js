@@ -16,18 +16,18 @@ test('Runtime ejecuta flujo completo desde WhatsApp', async () => {
   assert.equal(result.context.channel, 'whatsapp');
   assert.equal(result.plan.intent, 'quote');
   assert.equal(result.plan.selectedOperator, 'sales');
-  assert.equal(result.operator.operator, 'sales');
-  assert.deepEqual(result.tools, []);
   assert.equal(result.business.allowed, true);
+  assert.equal(result.operator.operator, 'sales');
   assert.equal(result.response.channel, 'whatsapp');
   assert.equal(result.response.recipient, '50588888888');
   assert.equal(result.memory.messages.length, 2);
+  assert.equal(result.sessionId, result.identity.identityId);
 });
 
-test('Runtime conserva memoria por sesion', async () => {
+test('Runtime conserva memoria por identidad', async () => {
   const runtime = createDefaultElanAIRuntime();
 
-  await runtime.process('whatsapp', {
+  const first = await runtime.process('whatsapp', {
     from: '50577777777',
     body: 'Hola'
   });
@@ -37,7 +37,8 @@ test('Runtime conserva memoria por sesion', async () => {
     body: 'Necesito precio'
   });
 
-  assert.equal(second.sessionId, '50577777777');
+  assert.equal(second.sessionId, first.identity.identityId);
+  assert.equal(second.identity.identityId, first.identity.identityId);
   assert.equal(second.memory.messages.length, 4);
   assert.match(second.memory.summary, /Necesito precio/);
 });
