@@ -11,6 +11,7 @@
         "elan": "node cli/elan.js"
     },
     "dependencies": {
-        "@supabase/supabase-js": "^2.110.2"
+        "@supabase/supabase-js": "^2.110.2",
+        "openai": "^6.46.0"
     }
 }
