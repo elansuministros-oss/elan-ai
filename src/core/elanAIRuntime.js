@@ -1,3 +1,67 @@
+function normalizeCommand(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[.!?]+$/g, '');
+}
+
+function isCancellationCommand(message) {
+  const normalized = normalizeCommand(message);
+
+  const exactCommands = new Set([
+    'cancelar',
+    'cancela',
+    'cancelalo',
+    'cancelala',
+    'cancelar orden',
+    'cancelar esta orden',
+    'elimina esa orden',
+    'eliminar esa orden',
+    'detener',
+    'deten',
+    'detener proceso',
+    'detener este proceso',
+    'para',
+    'parar',
+    'olvida eso',
+    'olvidalo',
+    'deja eso',
+    'dejalo',
+    'cambiar de tema',
+    'cambiemos de tema',
+    'cancelar esta conversacion',
+    'da por cancelar esta conversacion',
+    'no voy a agregar ningun proveedor',
+    'no quiero agregar ningun proveedor'
+  ]);
+
+  if (exactCommands.has(normalized)) {
+    return true;
+  }
+
+  return /^(cancelar|cancela|deten|detener|parar|olvida|deja)\b/.test(normalized);
+}
+
+function createCancellationPlan(context) {
+  return Object.freeze({
+    planId: `plan-${context.requestId}`,
+    requestId: context.requestId,
+    channel: context.channel ?? null,
+    intent: 'cancel',
+    selectedOperator: null,
+    classificationSource: 'PRIORITY_COMMAND',
+    steps: Object.freeze([
+      'CLEAR_ACTIVE_FLOW',
+      'BUILD_RESPONSE',
+      'SAVE_MEMORY'
+    ]),
+    status: 'CANCELLED',
+    createdAt: new Date().toISOString()
+  });
+}
+
 export class ElanAIRuntime {
   constructor({
     channelEngine,
@@ -78,6 +142,9 @@ export class ElanAIRuntime {
         externalUserId: context.externalUserId,
         activeIntent: null,
         activeOperator: null,
+        pendingWorkflow: null,
+        pendingFields: [],
+        activeForm: null,
         lastRequestId: context.requestId
       });
     } else {
@@ -94,6 +161,67 @@ export class ElanAIRuntime {
       'user',
       context.message
     );
+
+    if (isCancellationCommand(context.message)) {
+      const plan = createCancellationPlan(context);
+      const cancellationMessage = 'Entendido. Cancelé el proceso activo. Decime qué necesitás ahora.';
+
+      await this.stateEngine.patch(stateKey, {
+        phase: 'CANCELLED',
+        activeIntent: null,
+        activeOperator: null,
+        pendingWorkflow: null,
+        pendingFields: [],
+        activeForm: null,
+        cancelledAt: new Date().toISOString(),
+        lastRequestId: context.requestId
+      });
+
+      const formatted = this.channelEngine.formatResponse(
+        channelName,
+        {
+          externalUserId: context.externalUserId,
+          response: cancellationMessage,
+          metadata: {
+            requestId: context.requestId,
+            identityId: identity.identityId,
+            operator: null,
+            cancelled: true
+          }
+        }
+      );
+
+      await this.memoryEngine.appendMessage(
+        sessionId,
+        'assistant',
+        formatted.message
+      );
+
+      return Object.freeze({
+        requestId: context.requestId,
+        identity,
+        identityCreated: identityResult.created,
+        identityMerged: identityResult.merged ?? false,
+        sessionId,
+        stateKey,
+        status: 'COMPLETED',
+        cancelled: true,
+        context,
+        plan,
+        memory: await this.memoryEngine.getSession(sessionId),
+        state: await this.stateEngine.get(stateKey),
+        knowledge: Object.freeze([]),
+        reasoning: null,
+        operator: null,
+        tools: Object.freeze([]),
+        business: Object.freeze({
+          allowed: true,
+          status: 'APPROVED',
+          reason: 'PRIORITY_CANCELLATION_COMMAND'
+        }),
+        response: formatted
+      });
+    }
 
     const plan = this.planner.createPlan(context);
 
