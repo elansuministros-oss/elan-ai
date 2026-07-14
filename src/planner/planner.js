@@ -1,8 +1,37 @@
 const INTENT_RULES = [
+  {
+    intent: 'support',
+    operator: 'support',
+    words: [
+      'modo owner',
+      'job-',
+      'codex',
+      'pull request',
+      'rama temporal',
+      'runtime',
+      'auditoria',
+      'auditar',
+      'npm test',
+      'commit',
+      'despliegue'
+    ]
+  },
   { intent: 'quote', operator: 'sales', words: ['cotizacion', 'cotizar', 'precio', 'presupuesto'] },
   { intent: 'support', operator: 'support', words: ['ayuda', 'problema', 'error', 'soporte'] },
   { intent: 'production', operator: 'production', words: ['produccion', 'orden de trabajo', 'ot'] },
-  { intent: 'crm', operator: 'crm', words: ['cliente', 'contacto', 'seguimiento'] }
+  {
+    intent: 'crm',
+    operator: 'crm',
+    words: [
+      'proveedor',
+      'proveedores',
+      'nombre comercial',
+      'productos y servicios',
+      'cliente',
+      'contacto',
+      'seguimiento'
+    ]
+  }
 ];
 
 function normalizeText(value) {
@@ -17,7 +46,7 @@ function classifyIntent(message) {
   const normalized = normalizeText(message);
 
   for (const rule of INTENT_RULES) {
-    if (rule.words.some((word) => normalized.includes(word))) {
+    if (rule.words.some((word) => normalized.includes(normalizeText(word)))) {
       return {
         intent: rule.intent,
         operator: rule.operator,
