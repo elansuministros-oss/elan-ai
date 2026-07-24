@@ -109,7 +109,8 @@ export class ElanAIRuntime {
     this.businessEngine = businessEngine;
   }
 
-  async process(channelName, rawInput = {}) {
+  async process(channelName, rawInput = {}, options = {}) {
+    const executeTools = options.executeTools !== false;
     const normalized = this.channelEngine.normalize(channelName, rawInput);
     const context = this.dispatcher.dispatch(normalized);
 
@@ -266,8 +267,10 @@ export class ElanAIRuntime {
       phase: 'OPERATED'
     });
 
-    const executableActions = (operatorResult.actions || [])
-      .filter((action) => typeof action.toolName === 'string');
+    const executableActions = executeTools
+      ? (operatorResult.actions || [])
+        .filter((action) => typeof action.toolName === 'string')
+      : [];
 
     const toolResults = [];
 

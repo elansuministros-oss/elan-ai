@@ -5,8 +5,9 @@
     "type": "module",
     "description": "ELAN AI - Motor de Inteligencia Operacional",
     "scripts": {
-        "start": "node src/index.js",
-        "dev": "node --watch src/index.js",
+        "start": "node src/server.js",
+        "dev": "node --watch src/server.js",
+        "check": "node src/index.js",
         "test": "node --test",
         "elan": "node cli/elan.js"
     },

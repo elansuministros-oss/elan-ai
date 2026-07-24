@@ -76,12 +76,12 @@ test('Runtime cancela flujo antes de razonamiento y operadores', async () => {
   assert.equal(result.operator, null);
   assert.equal(result.reasoning, null);
   assert.equal(result.tools.length, 0);
-  assert.equal(result.state.phase, 'CANCELLED');
-  assert.equal(result.state.activeIntent, null);
-  assert.equal(result.state.activeOperator, null);
-  assert.equal(result.state.pendingWorkflow, null);
-  assert.deepEqual(result.state.pendingFields, []);
-  assert.equal(result.state.activeForm, null);
+  assert.equal(result.state.data.phase, 'CANCELLED');
+  assert.equal(result.state.data.activeIntent, null);
+  assert.equal(result.state.data.activeOperator, null);
+  assert.equal(result.state.data.pendingWorkflow, null);
+  assert.deepEqual(result.state.data.pendingFields, []);
+  assert.equal(result.state.data.activeForm, null);
   assert.match(result.response.message, /Cancelé el proceso activo/);
 });
 
@@ -95,5 +95,5 @@ test('Runtime reconoce cancelacion explicita de proveedor', async () => {
 
   assert.equal(result.cancelled, true);
   assert.equal(result.plan.intent, 'cancel');
-  assert.equal(result.state.phase, 'CANCELLED');
+  assert.equal(result.state.data.phase, 'CANCELLED');
 });
