@@ -38,3 +38,30 @@ test('OrchestratorClient rechaza respuestas HTTP no exitosas', async () => {
     error => error.message === 'ORCHESTRATOR_HTTP_503' && error.status === 503
   );
 });
+
+test('OrchestratorClient ejecuta CONNECT Tool Gateway autenticado', async () => {
+  const calls = [];
+  const client = new OrchestratorClient({
+    baseUrl: 'http://orchestrator.test/',
+    internalToken: 'secret',
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return response({
+        success: true,
+        result: { operation: 'leads.list', data: [] }
+      });
+    }
+  });
+
+  const result = await client.executeConnectTool({
+    operation: 'leads.list',
+    input: {},
+    permissions: ['connect:leads:read'],
+    mode: 'active'
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(calls[0].url, 'http://orchestrator.test/api/tools/connect');
+  assert.equal(calls[0].options.method, 'POST');
+  assert.equal(calls[0].options.headers['X-ELAN-AI-Token'], 'secret');
+});
