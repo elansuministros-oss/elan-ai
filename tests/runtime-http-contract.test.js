@@ -132,3 +132,71 @@ test('shadow invoca runtime sin ejecutar herramientas', async () => {
     );
   });
 });
+
+test('active reporta las herramientas ejecutadas sin exponer datos', async () => {
+  const handler = createRuntimeHttpHandler({
+    authToken: 'secret',
+    runtime: {
+      async process() {
+        return {
+          requestId: 'runtime-request-active-001',
+          status: 'COMPLETED',
+          identity: { identityId: 'identity-owner-001' },
+          sessionId: 'identity-owner-001',
+          plan: {
+            intent: 'quote',
+            selectedOperator: 'sales'
+          },
+          business: { allowed: true },
+          tools: [{
+            toolName: 'connect',
+            result: {
+              status: 'SUCCESS',
+              data: {
+                operation: 'quotes.list',
+                result: [{ id: 'private-data-not-returned' }]
+              }
+            }
+          }],
+          response: {
+            recipient: '50588388940',
+            message: 'Consulta ejecutada'
+          }
+        };
+      }
+    }
+  });
+
+  await withServer(handler, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/v1/runtime/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-ELAN-AI-Token': 'secret'
+      },
+      body: JSON.stringify(createRequest({
+        mode: 'active',
+        identity: {
+          externalUserId: '50588388940',
+          phone: '50588388940',
+          ownerMode: true
+        },
+        context: {
+          platform: 'elanvisual',
+          permissions: ['connect:quotes:read'],
+          conversationHistory: []
+        }
+      }))
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.audit.toolsExecuted, true);
+    assert.deepEqual(body.audit.toolCalls, [{
+      toolName: 'connect',
+      operation: 'quotes.list',
+      status: 'SUCCESS'
+    }]);
+    assert.equal(JSON.stringify(body).includes('private-data-not-returned'), false);
+  });
+});

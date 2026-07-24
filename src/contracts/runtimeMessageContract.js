@@ -129,6 +129,13 @@ export function toRuntimeInput(request) {
 
 export function createRuntimeMessageResponse(request, result) {
   const responseText = optionalText(result?.response?.message);
+  const toolCalls = Array.isArray(result?.tools)
+    ? result.tools.map((tool) => Object.freeze({
+      toolName: optionalText(tool?.toolName),
+      operation: optionalText(tool?.result?.data?.operation),
+      status: optionalText(tool?.result?.status) || 'UNKNOWN'
+    }))
+    : [];
 
   return Object.freeze({
     version: RUNTIME_CONTRACT_VERSION,
@@ -153,7 +160,8 @@ export function createRuntimeMessageResponse(request, result) {
       toolsExecuted:
         request.mode === 'active' &&
         Array.isArray(result?.tools) &&
-        result.tools.length > 0
+        result.tools.length > 0,
+      toolCalls: Object.freeze(toolCalls)
     })
   });
 }

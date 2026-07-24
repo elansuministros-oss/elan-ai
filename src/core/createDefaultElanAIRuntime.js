@@ -37,7 +37,9 @@ import {
 } from '../business/index.js';
 import { ElanAIRuntime } from './elanAIRuntime.js';
 
-export function createDefaultElanAIRuntime() {
+export function createDefaultElanAIRuntime({
+  orchestratorClient
+} = {}) {
   const channelEngine = new ChannelEngine(
     createDefaultChannelRegistry()
   );
@@ -65,7 +67,7 @@ export function createDefaultElanAIRuntime() {
   const operatorRegistry = createDefaultOperatorRegistry();
 
   const toolEngine = new ToolEngine(
-    createDefaultToolRegistry()
+    createDefaultToolRegistry({ orchestratorClient })
   );
 
   const businessEngine = new BusinessEngine(

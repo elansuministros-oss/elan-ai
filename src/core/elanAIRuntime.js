@@ -1,3 +1,7 @@
+import {
+  resolveControlledConnectReadAction
+} from '../actions/index.js';
+
 function normalizeCommand(value) {
   return String(value || '')
     .normalize('NFD')
@@ -267,8 +271,14 @@ export class ElanAIRuntime {
       phase: 'OPERATED'
     });
 
+    const controlledConnectAction =
+      resolveControlledConnectReadAction(context);
+    const actions = [
+      ...(operatorResult.actions || []),
+      ...(controlledConnectAction ? [controlledConnectAction] : [])
+    ];
     const executableActions = executeTools
-      ? (operatorResult.actions || [])
+      ? actions
         .filter((action) => typeof action.toolName === 'string')
       : [];
 

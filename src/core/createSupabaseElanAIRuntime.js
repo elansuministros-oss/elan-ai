@@ -33,7 +33,8 @@ import { ElanAIRuntime } from './elanAIRuntime.js';
 
 export function createSupabaseElanAIRuntime({
   client,
-  reasoningProvider = new DeterministicReasoningProvider()
+  reasoningProvider = new DeterministicReasoningProvider(),
+  orchestratorClient
 } = {}) {
   if (!client || typeof client.from !== 'function') {
     throw new TypeError('createSupabaseElanAIRuntime requiere client Supabase');
@@ -66,7 +67,7 @@ export function createSupabaseElanAIRuntime({
   const operatorRegistry = createDefaultOperatorRegistry();
 
   const toolEngine = new ToolEngine(
-    createDefaultToolRegistry()
+    createDefaultToolRegistry({ orchestratorClient })
   );
 
   const businessEngine = new BusinessEngine(

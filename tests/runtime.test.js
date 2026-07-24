@@ -97,3 +97,71 @@ test('Runtime reconoce cancelacion explicita de proveedor', async () => {
   assert.equal(result.plan.intent, 'cancel');
   assert.equal(result.state.data.phase, 'CANCELLED');
 });
+
+test('Runtime controlado ejecuta una consulta CONNECT del propietario', async () => {
+  const calls = [];
+  const runtime = createDefaultElanAIRuntime({
+    orchestratorClient: {
+      async getHealth() {
+        return { status: 'READY' };
+      },
+      async executeConnectTool(input) {
+        calls.push(input);
+        return {
+          success: true,
+          result: {
+            data: [{ id: 'quote-001' }]
+          }
+        };
+      }
+    }
+  });
+
+  const result = await runtime.process('whatsapp', {
+    from: '50588388940',
+    body: 'Revisá mis cotizaciones',
+    metadata: {
+      mode: 'active',
+      ownerMode: true,
+      platform: 'elanvisual',
+      permissions: ['connect:quotes:read']
+    }
+  }, {
+    executeTools: true
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].operation, 'quotes.list');
+  assert.deepEqual(calls[0].input, { platform: 'elanvisual' });
+  assert.equal(result.tools.length, 1);
+  assert.equal(result.tools[0].toolName, 'connect');
+});
+
+test('Runtime no ejecuta CONNECT para una identidad cliente', async () => {
+  let invoked = false;
+  const runtime = createDefaultElanAIRuntime({
+    orchestratorClient: {
+      async getHealth() {
+        return { status: 'READY' };
+      },
+      async executeConnectTool() {
+        invoked = true;
+      }
+    }
+  });
+
+  const result = await runtime.process('whatsapp', {
+    from: '50588888888',
+    body: 'Revisá mis cotizaciones',
+    metadata: {
+      mode: 'active',
+      ownerMode: false,
+      permissions: ['connect:quotes:read']
+    }
+  }, {
+    executeTools: true
+  });
+
+  assert.equal(invoked, false);
+  assert.equal(result.tools.length, 0);
+});
