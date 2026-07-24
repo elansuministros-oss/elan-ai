@@ -26,6 +26,20 @@ test('traduce una consulta del propietario a quotes.list', () => {
   assert.equal(action.input.mode, 'active');
 });
 
+test('reconoce mostrame como consulta del propietario', () => {
+  const action = resolveControlledConnectReadAction({
+    message: 'Mostrame las órdenes',
+    metadata: {
+      mode: 'active',
+      ownerMode: true,
+      permissions: ['connect:orders:read']
+    }
+  });
+
+  assert.ok(action);
+  assert.equal(action.input.operation, 'orders.list');
+});
+
 test('no crea acciones para clientes ni shadow', () => {
   assert.equal(
     resolveControlledConnectReadAction(context({

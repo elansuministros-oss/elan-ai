@@ -165,3 +165,47 @@ test('Runtime no ejecuta CONNECT para una identidad cliente', async () => {
   assert.equal(invoked, false);
   assert.equal(result.tools.length, 0);
 });
+
+test('Runtime convierte una lectura CONNECT en respuesta controlada', async () => {
+  const runtime = createDefaultElanAIRuntime({
+    orchestratorClient: {
+      async getHealth() {
+        return { status: 'READY' };
+      },
+      async executeConnectTool() {
+        return {
+          success: true,
+          result: {
+            data: [{
+              id: 'internal-id',
+              orderNumber: 'ORD-2026-004',
+              status: 'in_progress',
+              productionStatus: 'pending'
+            }]
+          }
+        };
+      }
+    }
+  });
+
+  const result = await runtime.process('whatsapp', {
+    from: '50588388940',
+    body: 'Mostrame las órdenes',
+    metadata: {
+      mode: 'active',
+      ownerMode: true,
+      permissions: ['connect:orders:read']
+    }
+  }, {
+    executeTools: true
+  });
+
+  assert.equal(
+    result.response.message,
+    [
+      'Órdenes: 1.',
+      '1. ORD-2026-004 — en proceso · pendiente'
+    ].join('\n')
+  );
+  assert.equal(result.response.message.includes('internal-id'), false);
+});

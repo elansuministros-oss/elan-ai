@@ -133,7 +133,7 @@ test('shadow invoca runtime sin ejecutar herramientas', async () => {
   });
 });
 
-test('active reporta las herramientas ejecutadas sin exponer datos', async () => {
+test('active reporta herramientas y respuesta controlada sin habilitar entrega', async () => {
   const handler = createRuntimeHttpHandler({
     authToken: 'secret',
     runtime: {
@@ -150,12 +150,10 @@ test('active reporta las herramientas ejecutadas sin exponer datos', async () =>
           business: { allowed: true },
           tools: [{
             toolName: 'connect',
-            result: {
-              status: 'SUCCESS',
-              data: {
-                operation: 'quotes.list',
-                result: [{ id: 'private-data-not-returned' }]
-              }
+            status: 'SUCCESS',
+            data: {
+              operation: 'quotes.list',
+              result: [{ id: 'private-data-not-returned' }]
             }
           }],
           response: {
@@ -192,6 +190,8 @@ test('active reporta las herramientas ejecutadas sin exponer datos', async () =>
 
     assert.equal(response.status, 200);
     assert.equal(body.audit.toolsExecuted, true);
+    assert.equal(body.output.text, 'Consulta ejecutada');
+    assert.equal(body.output.deliverable, false);
     assert.deepEqual(body.audit.toolCalls, [{
       toolName: 'connect',
       operation: 'quotes.list',

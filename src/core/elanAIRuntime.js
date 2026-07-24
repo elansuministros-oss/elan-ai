@@ -1,6 +1,9 @@
 import {
   resolveControlledConnectReadAction
 } from '../actions/index.js';
+import {
+  buildControlledConnectReadResponse
+} from '../responses/index.js';
 
 function normalizeCommand(value) {
   return String(value || '')
@@ -333,15 +336,18 @@ export class ElanAIRuntime {
       });
     }
 
+    const controlledReadResponse =
+      buildControlledConnectReadResponse(toolResults);
     const formatted = this.channelEngine.formatResponse(
       channelName,
       {
         externalUserId: context.externalUserId,
-        response: operatorResult.response,
+        response: controlledReadResponse || operatorResult.response,
         metadata: {
           requestId: context.requestId,
           identityId: identity.identityId,
-          operator: plan.selectedOperator
+          operator: plan.selectedOperator,
+          controlledRead: Boolean(controlledReadResponse)
         }
       }
     );

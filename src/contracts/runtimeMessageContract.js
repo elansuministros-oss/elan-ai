@@ -132,10 +132,17 @@ export function createRuntimeMessageResponse(request, result) {
   const toolCalls = Array.isArray(result?.tools)
     ? result.tools.map((tool) => Object.freeze({
       toolName: optionalText(tool?.toolName),
-      operation: optionalText(tool?.result?.data?.operation),
-      status: optionalText(tool?.result?.status) || 'UNKNOWN'
+      operation:
+        optionalText(tool?.data?.operation) ||
+        optionalText(tool?.result?.data?.operation),
+      status:
+        optionalText(tool?.status) ||
+        optionalText(tool?.result?.status) ||
+        'UNKNOWN'
     }))
     : [];
+  const deliveryEnabled =
+    request.context.metadata.deliveryEnabled === true;
 
   return Object.freeze({
     version: RUNTIME_CONTRACT_VERSION,
@@ -152,7 +159,10 @@ export function createRuntimeMessageResponse(request, result) {
     output: Object.freeze({
       text: responseText,
       recipient: optionalText(result?.response?.recipient),
-      deliverable: request.mode === 'active' && Boolean(responseText)
+      deliverable:
+        request.mode === 'active' &&
+        deliveryEnabled &&
+        Boolean(responseText)
     }),
     audit: Object.freeze({
       identityId: optionalText(result?.identity?.identityId),

@@ -1,5 +1,5 @@
 const READ_COMMAND_PATTERN =
-  /\b(lista|listar|muestra|mostrar|mostra|revisa|revisar|consulta|consultar|busca|buscar|ver|cuales|cuantos|cuantas|mis|estado)\b/;
+  /\b(lista|listar|muestra|mostrar|mostra|mostrame|revisa|revisar|consulta|consultar|busca|buscar|ver|cuales|cuantos|cuantas|mis|estado)\b/;
 
 const MUTATION_PATTERN =
   /\b(crea|crear|agrega|agregar|registra|registrar|nuevo|nueva|actualiza|actualizar|cambia|cambiar|elimina|eliminar|acepta|aceptar|convierte|convertir)\b/;
